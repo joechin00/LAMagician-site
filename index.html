@@ -131,6 +131,11 @@ img{display:block}
 .field input,.field select,.field textarea{font-family:var(--font-body);font-size:1.05rem;color:var(--jk-navy);background:var(--jk-cream-100);border:1px solid var(--jk-cream-400);border-radius:var(--radius-md);padding:.65rem .8rem;transition:border-color .14s var(--ease-out),box-shadow .14s var(--ease-out)}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--jk-gold-600);box-shadow:0 0 0 3px rgba(196,168,130,.28)}
 .field textarea{resize:vertical;min-height:74px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.form-status{margin:0;padding:.85rem 1rem;border-radius:var(--radius-md);text-align:center;font-size:1.02rem;line-height:1.45}
+.form-status--ok{background:var(--jk-cream-100);border:1px solid var(--jk-gold);color:var(--jk-navy)}
+.form-status--err{background:var(--jk-cream-100);border:1px solid var(--jk-crimson);color:var(--jk-navy)}
+.form-status a{color:var(--jk-crimson)}
 .form-card__fine{text-align:center;font-size:.9rem;color:var(--jk-navy-400);margin:0}
 
 /* ---- FAQ ---- */
@@ -297,23 +302,27 @@ details .a p{margin:.4rem 0}
       </div>
     </div>
 
-    <form class="form-card" onsubmit="return false">
+    <form class="form-card" id="bookingForm" name="booking" method="POST" data-netlify="true" data-netlify-honeypot="bot-field">
+      <input type="hidden" name="form-name" value="booking">
+      <input type="hidden" name="subject" id="bookingSubject" value="New LAMagician inquiry">
+      <p class="hp" aria-hidden="true"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
       <div class="form-card__inner">
         <h3>Tell me about your event</h3>
         <div class="fgrid">
-          <div class="field"><label for="d">Event date</label><input id="d" type="date"></div>
+          <div class="field"><label for="d">Event date</label><input id="d" name="event_date" type="date"></div>
           <div class="field"><label for="t">Event type</label>
-            <select id="t"><option>Corporate event</option><option>Wedding</option><option>Private party</option><option>Gala / fundraiser</option><option>Something else</option></select>
+            <select id="t" name="event_type"><option>Corporate event</option><option>Wedding</option><option>Private party</option><option>Gala / fundraiser</option><option>Something else</option></select>
           </div>
-          <div class="field"><label for="v">Venue or city</label><input id="v" type="text" placeholder="e.g. Beverly Hills"></div>
+          <div class="field"><label for="v">Venue or city</label><input id="v" name="venue_or_city" type="text" placeholder="e.g. Beverly Hills"></div>
           <div class="field"><label for="g">Guest count</label>
-            <select id="g"><option>Under 25</option><option>25-75</option><option>75-150</option><option>150-300</option><option>300+</option></select>
+            <select id="g" name="guest_count"><option>Under 25</option><option>25-75</option><option>75-150</option><option>150-300</option><option>300+</option></select>
           </div>
-          <div class="field"><label for="n">Your name</label><input id="n" type="text"></div>
-          <div class="field"><label for="e">Email or phone</label><input id="e" type="text"></div>
-          <div class="field field--full"><label for="m">Anything else?</label><textarea id="m" placeholder="Cocktail hour? Between courses? A guest of honor to astonish?"></textarea></div>
+          <div class="field"><label for="n">Your name</label><input id="n" name="name" type="text" autocomplete="name" required></div>
+          <div class="field"><label for="e">Email or phone</label><input id="e" name="contact" type="text" autocomplete="email" required></div>
+          <div class="field field--full"><label for="m">Anything else?</label><textarea id="m" name="details" placeholder="Cocktail hour? Between courses? A guest of honor to astonish?"></textarea></div>
         </div>
         <button class="btn btn--primary btn--block" type="submit">&hearts;&nbsp; Check Availability</button>
+        <p class="form-status" id="bookingStatus" role="status" aria-live="polite" hidden></p>
         <p class="form-card__fine">No deposit to inquire. Your date is only held once we&rsquo;ve confirmed in writing.</p>
       </div>
     </form>
@@ -423,6 +432,46 @@ details .a p{margin:.4rem 0}
     closeBtn.addEventListener("click", close);
     overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && overlay.classList.contains("is-open")) close(); });
+  })();
+
+  // Booking form: post quietly to Netlify Forms, stay on the page
+  (function () {
+    const form = document.getElementById("bookingForm");
+    if (!form) return;
+    const status = document.getElementById("bookingStatus");
+    const subject = document.getElementById("bookingSubject");
+    const btn = form.querySelector('button[type="submit"]');
+    const btnLabel = btn.innerHTML;
+    const show = (kind, html) => {
+      status.className = "form-status form-status--" + kind;
+      status.innerHTML = html;
+      status.hidden = false;
+    };
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = form.elements;
+      subject.value = "New LAMagician inquiry: " + f.event_type.value +
+        (f.event_date.value ? ", " + f.event_date.value : "") +
+        (f.name.value ? " (" + f.name.value.trim() + ")" : "");
+      btn.disabled = true;
+      btn.textContent = "Sending...";
+      status.hidden = true;
+      try {
+        const res = await fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(new FormData(form)).toString()
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        form.reset();
+        btn.textContent = "Sent";
+        show("ok", "Got it. I&rsquo;ll reply within 24 hours, usually the same day.");
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = btnLabel;
+        show("err", "That didn&rsquo;t go through. Please email <a href=\"mailto:joseph@lamagician.com\">joseph@lamagician.com</a> or call 77-333-MAGIC (773-336-2442).");
+      }
+    });
   })();
 </script>
 
