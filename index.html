@@ -302,10 +302,8 @@ details .a p{margin:.4rem 0}
       </div>
     </div>
 
-    <form class="form-card" id="bookingForm" name="booking" method="POST" data-netlify="true" data-netlify-honeypot="bot-field">
-      <input type="hidden" name="form-name" value="booking">
-      <input type="hidden" name="subject" id="bookingSubject" value="New LAMagician inquiry">
-      <p class="hp" aria-hidden="true"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+    <form class="form-card" id="bookingForm">
+      <p class="hp" aria-hidden="true"><label>Leave this unchecked <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off"></label></p>
       <div class="form-card__inner">
         <h3>Tell me about your event</h3>
         <div class="fgrid">
@@ -434,12 +432,13 @@ details .a p{margin:.4rem 0}
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && overlay.classList.contains("is-open")) close(); });
   })();
 
-  // Booking form: post quietly to Netlify Forms, stay on the page
+  // Booking form: send quietly to Web3Forms (emails joseph@lamagician.com), stay on the page
   (function () {
     const form = document.getElementById("bookingForm");
     if (!form) return;
+    const ENDPOINT = "https://api.web3forms.com/submit";
+    const ACCESS_KEY = "0edf9ff7-16ef-4ab9-90e3-d2f0af935fc2";
     const status = document.getElementById("bookingStatus");
-    const subject = document.getElementById("bookingSubject");
     const btn = form.querySelector('button[type="submit"]');
     const btnLabel = btn.innerHTML;
     const show = (kind, html) => {
@@ -450,19 +449,36 @@ details .a p{margin:.4rem 0}
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = form.elements;
-      subject.value = "New LAMagician inquiry: " + f.event_type.value +
-        (f.event_date.value ? ", " + f.event_date.value : "") +
-        (f.name.value ? " (" + f.name.value.trim() + ")" : "");
+      const name = f.name.value.trim();
+      const contact = f.contact.value.trim();
+      const payload = {
+        access_key: ACCESS_KEY,
+        subject: "New LAMagician inquiry: " + f.event_type.value +
+          (f.event_date.value ? ", " + f.event_date.value : "") +
+          (name ? " (" + name + ")" : ""),
+        from_name: "LAMagician website",
+        botcheck: f.botcheck.checked ? "1" : "",
+        "Name": name,
+        "Email or phone": contact,
+        "Event date": f.event_date.value,
+        "Event type": f.event_type.value,
+        "Venue or city": f.venue_or_city.value.trim(),
+        "Guest count": f.guest_count.value,
+        "Anything else": f.details.value.trim()
+      };
+      // If they gave an email, let Reply go straight to them
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) payload.email = contact;
       btn.disabled = true;
       btn.textContent = "Sending...";
       status.hidden = true;
       try {
-        const res = await fetch("/", {
+        const res = await fetch(ENDPOINT, {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams(new FormData(form)).toString()
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) throw new Error(data.message || ("HTTP " + res.status));
         form.reset();
         btn.textContent = "Sent";
         show("ok", "Got it. I&rsquo;ll reply within 24 hours, usually the same day.");
