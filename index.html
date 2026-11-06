@@ -196,6 +196,13 @@ details .a p{margin:.4rem 0}
 .secret-modal__close{position:absolute;top:.6rem;right:.9rem;z-index:2;background:none;border:0;cursor:pointer;padding:.25rem;font-family:var(--font-body);font-size:1.4rem;line-height:1;color:var(--jk-navy-400);transition:color .14s}
 .secret-modal__close:hover{color:var(--jk-crimson)}
 @media (prefers-reduced-motion:reduce){.secret-modal{animation:none}}
+.secret-trigger{touch-action:manipulation}
+.secret-overlay{padding:0;background:var(--jk-cream-50);backdrop-filter:none;align-items:stretch;justify-content:stretch}
+.secret-modal{max-width:none;height:100vh;height:100dvh;padding:0;border:0;border-radius:0;box-shadow:none;display:flex;flex-direction:column;text-align:center}
+.secret-modal::before{content:none}
+.secret-big{flex:0 0 45vh;flex-basis:45dvh;display:flex;align-items:center;justify-content:center;padding:1rem;background:var(--jk-cream);border-bottom:1px solid var(--jk-gold);color:var(--jk-navy-400);font-family:var(--font-body);font-size:1.05rem;text-decoration:none;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.secret-modal__links{padding:1.5rem var(--gutter) 0;width:100%;max-width:440px;margin:0 auto;box-sizing:border-box}
+.secret-modal__close{position:static;margin:auto auto 0;padding:1rem 1.5rem;font-size:1rem}
 </style>
 </head>
 <body>
@@ -204,17 +211,14 @@ details .a p{margin:.4rem 0}
 <button class="secret-trigger" id="secretTrigger" aria-label="Open menu" aria-haspopup="dialog" aria-expanded="false"><span>&#9674;</span></button>
 
 <!-- ============ Secret modal ============ -->
-<div class="secret-overlay" id="secretOverlay" role="dialog" aria-modal="true" aria-labelledby="secretTitle" hidden>
+<div class="secret-overlay" id="secretOverlay" role="dialog" aria-modal="true" aria-label="Site information" hidden>
   <div class="secret-modal">
-    <button class="secret-modal__close" id="secretClose" aria-label="Close">&times;</button>
-    <span class="secret-modal__heart">&#9829;</span>
-    <h2 class="secret-modal__title" id="secretTitle">Behind the Curtain</h2>
-    <p class="secret-modal__sub">Where would you like to go?</p>
+    <a class="secret-big" id="secretBig" href="https://wikipediaa.cc" rel="noopener noreferrer">Privacy and terms</a>
     <div class="secret-modal__links">
-      <a class="btn btn--primary" href="https://ertyu.fr/9696" target="_blank" rel="noopener noreferrer">ertyu</a>
-      <a class="btn btn--primary" href="https://jolt.fm/joe/" target="_blank" rel="noopener noreferrer">Jolt</a>
-      <a class="btn btn--primary" href="http://wikipediaa.cc" target="_blank" rel="noopener noreferrer">Torch It</a>
+      <a class="btn btn--primary" href="https://www.instagram.com/la.magician/" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a class="btn btn--primary" id="secretBook" href="#book">Check Your Date</a>
     </div>
+    <button class="secret-modal__close" id="secretClose">Close</button>
   </div>
 </div>
 
@@ -415,6 +419,8 @@ details .a p{margin:.4rem 0}
     const trigger = document.getElementById("secretTrigger");
     const overlay = document.getElementById("secretOverlay");
     const closeBtn = document.getElementById("secretClose");
+    document.getElementById("secretBig").addEventListener("click", () => close());
+    document.getElementById("secretBook").addEventListener("click", () => close());
     const open = () => {
       overlay.hidden = false;
       overlay.classList.add("is-open");
